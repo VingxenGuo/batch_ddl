@@ -1,8 +1,9 @@
-use testdb;
-drop procedure if exists InsertInBatches;
+create database if not exists tool ;
+use tool;
+drop procedure if exists copyInsertBatches;
 DELIMITER //
 
-CREATE PROCEDURE InsertInBatches(IN batchSize INT, IN your_target_table varchar(64),IN your_source_table varchar(64), IN your_condition varchar(64) )
+CREATE PROCEDURE copyInsertBatches(IN batchSize INT, IN your_target_table varchar(64),IN your_source_table varchar(64), IN your_condition varchar(64) )
 BEGIN
     DECLARE done INT DEFAULT FALSE;
     DECLARE batchSize INT DEFAULT 10000; -- 設定每批次的大小
@@ -13,32 +14,38 @@ BEGIN
     DECLARE e_sql text default '';
     DECLARE sql_1 text;
     DECLARE max_id int;
+    DECLARE duration_ts timestamp;
+    DECLARE start_ts timestamp;
+    DECLARE last_exec_ts timestamp;
+    DECLARE affect_rows int;
     
     
     
-#    DECLARE cur CURSOR FOR SELECT * FROM detail_record.bjl_gameRecord WHERE your_condition;
-#    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-
     set @sql_1 = concat('select id into @max_id from ', your_source_table, ' order by id desc limit 1;');
     prepare stmt from @sql_1;
     execute stmt;
     deallocate prepare stmt;
-    select @sql_1;
     set max_id = @max_id;
     select max_id;
-    
-
 	
 	-- 若是 insert 時插入到目標表，這裡假設目標表為 your_target_table
 	while max_id > endIdx do
+    
 		set endIdx = endIdx + batchSize ;
-		set e_sql = concat(e_sql ,'\nINSERT INTO ', your_target_table, ' SELECT * FROM ', your_source_table, ' WHERE ', your_condition, ' AND id BETWEEN ', startIdx, ' AND ', endIdx, ';');
-	
+		set @e_sql = concat('INSERT INTO ', your_target_table, ' SELECT * FROM ', your_source_table, ' WHERE ', your_condition, ' AND id BETWEEN ', startIdx, ' AND ', endIdx, ';');
+		select @e_sql;
+        set start_ts = UNIX_TIMESTAMP(NOW(6));
+        prepare stmt from @e_sql;
+        execute stmt;
+        set current_ts = UNIX_TIMESTAMP(NOW(6));
+        set duration_ts = current_ts - start_ts;
+        set affect_rows = ROW_COUNT();
+        deallocate prepare stmt;
+        insert tool.batch_copy(start_tx, last_exec_ts, duration_ts, exec_table, affect_rows) values (start_tx, last_exec_ts, duration_ts, exec_table, affect_rows );
 		set startIdx = endIdx + 1;
 		
 	end while;
-    select e_sql;
-        -- 這裡加入 UPDATE 或 DELETE 的邏輯
+    
 
     
 END //
