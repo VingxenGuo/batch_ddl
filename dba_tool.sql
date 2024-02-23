@@ -56,10 +56,10 @@ UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `copyBatches`(IN your_target_table VARCHAR(64),IN your_source_table VARCHAR(64), IN your_condition VARCHAR(64), IN batchSize INT)
+CREATE DEFINER=`root`@`%` PROCEDURE `copyBatches`(IN your_target_table VARCHAR(64),IN your_source_table VARCHAR(64), IN your_condition VARCHAR(64), IN batch_size INT)
 BEGIN
     DECLARE DOne INT DEFAULT FALSE;
-    DECLARE batchSize INT; -- 設定每批次的大小
+    DECLARE batch_size INT; -- 設定每批次的大小
     DECLARE startIdx INT DEFAULT 0;
     DECLARE endIdx INT DEFAULT 0;
     DECLARE your_condition VARCHAR(64);
@@ -76,8 +76,8 @@ BEGIN
     IF ISNULL(your_condition) THEN
 		SET your_condition = 1;
     END IF;
-    IF ISNULL(batchSize) THEN
-		SET batchSize = 10000;
+    IF ISNULL(batch_size) THEN
+		SET batch_size = 10000;
     END IF;
     
     # 創建 target table 結構等同 source table
@@ -96,7 +96,7 @@ BEGIN
 	-- 若是  INSERT時插入到目標表，這裡假設目標表為 your_target_table
 	WHILE max_id > endIdx DO
     
-		SET endIdx = endIdx + batchSize ;
+		SET endIdx = endIdx + batch_size ;
 		SET @e_sql = CONCAT('INSERT INTO ', your_target_table, ' SELECT * FROM ', your_source_table, ' WHERE ', your_condition, ' AND id BETWEEN ', startIdx, ' AND ', endIdx, ';');
         SET start_ts = UNIX_TIMESTAMP(NOW(6));
         PREPARE stmt FROM @e_sql;
@@ -128,10 +128,10 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `copyInsertBatches`(IN batchSize INT, IN your_target_table varchar(64),IN your_source_table varchar(64), IN your_condition varchar(64) )
+CREATE DEFINER=`root`@`%` PROCEDURE `copyInsertBatches`(IN batch_size INT, IN your_target_table varchar(64),IN your_source_table varchar(64), IN your_condition varchar(64) )
 BEGIN
     DECLARE done INT DEFAULT FALSE;
-    DECLARE batchSize INT DEFAULT 10000; -- 設定每批次的大小
+    DECLARE batch_size INT DEFAULT 10000; -- 設定每批次的大小
     DECLARE startIdx INT DEFAULT 0;
     DECLARE endIdx INT DEFAULT 0;
     DECLARE your_condition varchar(64) DEFAULT '1';
@@ -157,7 +157,7 @@ BEGIN
 	-- 若是 insert 時插入到目標表，這裡假設目標表為 your_target_table
 	while max_id > endIdx do
     
-		set endIdx = endIdx + batchSize ;
+		set endIdx = endIdx + batch_size ;
 		set @e_sql = concat('INSERT INTO ', your_target_table, ' SELECT * FROM ', your_source_table, ' WHERE ', your_condition, ' AND id BETWEEN ', startIdx, ' AND ', endIdx, ';');
 		select @e_sql;
         set start_ts = UNIX_TIMESTAMP(NOW(6));
@@ -189,10 +189,10 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `InsertInBatches`(IN batchSize INT, IN your_target_table varchar(64),IN your_source_table varchar(64), IN your_condition varchar(64) )
+CREATE DEFINER=`root`@`%` PROCEDURE `InsertInBatches`(IN batch_size INT, IN your_target_table varchar(64),IN your_source_table varchar(64), IN your_condition varchar(64) )
 BEGIN
     DECLARE done INT DEFAULT FALSE;
-    DECLARE batchSize INT DEFAULT 10000; -- 設定每批次的大小
+    DECLARE batch_size INT DEFAULT 10000; -- 設定每批次的大小
     DECLARE startIdx INT DEFAULT 0;
     DECLARE endIdx INT DEFAULT 0;
     DECLARE your_condition varchar(64) DEFAULT '1';
@@ -218,7 +218,7 @@ BEGIN
 	
 	-- 若是 insert 時插入到目標表，這裡假設目標表為 your_target_table
 	while max_id > endIdx do
-		set endIdx = endIdx + batchSize ;
+		set endIdx = endIdx + batch_size ;
 		set e_sql = concat(e_sql ,'\nINSERT INTO ', your_target_table, ' SELECT * FROM ', your_source_table, ' WHERE ', your_condition, ' AND id BETWEEN ', startIdx, ' AND ', endIdx, ';');
 	
 		set startIdx = endIdx + 1;
